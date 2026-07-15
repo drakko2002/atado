@@ -45,25 +45,37 @@ def _load_pipeline(hf_token: str, device: str):
 
     last_err = None
     for name in _PIPELINES:
-        try:
-            pipe = Pipeline.from_pretrained(name, use_auth_token=hf_token)
+        # pyannote 4.x usa token=; <4 usa use_auth_token=. Tenta ambos.
+        for kwargs in ({"token": hf_token}, {"use_auth_token": hf_token}):
+            try:
+                pipe = Pipeline.from_pretrained(name, **kwargs)
+            except TypeError:
+                continue  # kwarg incompatível com esta versão do pyannote
+            except Exception as e:
+                last_err = e
+                break  # kwarg certo, mas outro erro (ex.: 401) — não tenta o outro kwarg
             if pipe is None:
-                raise DiarizationError(
-                    f"pyannote retornou None para {name} — provável licença não aceita. "
-                    f"Aceite em https://huggingface.co/{name}"
-                )
+                last_err = DiarizationError(f"pyannote retornou None para {name} (licença?).")
+                break
             try:
                 pipe.to(torch.device(device))
             except Exception:
                 pass
             return pipe
-        except Exception as e:  # tenta o próximo
-            last_err = e
+
+    msg = str(last_err) if last_err else ""
+    if any(k in msg.lower() for k in ("401", "gated", "restricted", "unauthorized")):
+        raise DiarizationError(
+            "Acesso negado (401) aos modelos de diarização do pyannote. Verifique:\n"
+            "  1) aceite as licenças de pyannote/speaker-diarization-3.1 E "
+            "pyannote/segmentation-3.0 (e/ou speaker-diarization-community-1) na sua conta HF;\n"
+            "  2) o HF_TOKEN precisa de leitura de repositórios 'gated' — em tokens fine-grained,\n"
+            "     marque 'Read access to contents of all public gated repos you can access'.\n"
+            f"Detalhe: {msg[:200]}"
+        )
     raise DiarizationError(
-        "Não foi possível carregar a pipeline de diarização do pyannote. "
-        "Verifique HF_TOKEN e aceite as licenças de "
-        "pyannote/speaker-diarization-3.1 e pyannote/segmentation-3.0. "
-        f"Erro: {last_err}"
+        "Não foi possível carregar a diarização do pyannote. "
+        f"Verifique HF_TOKEN e as licenças. Erro: {msg[:300]}"
     )
 
 

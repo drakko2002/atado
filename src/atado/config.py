@@ -58,6 +58,14 @@ class CorrectionCfg(BaseModel):
     enabled: bool = True
 
 
+class LongAudioCfg(BaseModel):
+    """Parâmetros de processamento por-chunk para arquivos longos (SPEC D, D1)."""
+    model_config = ConfigDict(extra="forbid")
+    chunk_length: float = 600.0    # segundos por bloco (padrão 10 min)
+    chunk_overlap: float = 3.0     # sobreposição entre blocos
+    silence_snap: float = 30.0     # janela p/ buscar silêncio perto da fronteira
+
+
 class AtadoConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
