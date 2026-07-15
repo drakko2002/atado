@@ -1,0 +1,41 @@
+KIT DE RECONSTRUÇÃO — projeto "{{ project }}"
+Gerado por atado v{{ version }}.
+
+=====================================================================
+O QUE É ISTO
+=====================================================================
+Uma pasta autocontida para você levar a um agente de IA (Claude, ChatGPT, Gemini,
+ou um modelo local) e reconstruir o significado das siglas + a narrativa da reunião.
+
+Arquivos:
+  00_PROTOCOLO.md         -> as instruções que transformam a IA no "reconstrutor".
+  01_contexto_usuario.md  -> contexto + sua tabela de siglas no estado atual.
+  02_termos.md            -> ocorrências de cada termo, com contexto e timestamps.
+{% if not terms_only %}  03_transcricao.md       -> a transcrição consolidada.
+{% endif %}{% if has_suspects %}  04_suspeitos.md         -> tokens provavelmente mal transcritos.
+{% endif %}
+=====================================================================
+COMO USAR (por agente)
+=====================================================================
+CLAUDE (claude.ai) ......: Nova conversa -> anexe TODOS os arquivos .md -> cole:
+                           "Siga 00_PROTOCOLO.md à risca." (upload de arquivos suportado)
+CHATGPT .................: Idem; anexe os arquivos ou cole o conteúdo em ordem.
+GEMINI ..................: Idem; use um modelo com janela de contexto grande.
+LOCAL (Ollama etc.) .....: Cole 00_PROTOCOLO.md + 01/02{% if not terms_only %}/03{% endif %}. Sem busca na web, o agente
+                           vai te pedir para pesquisar queries e colar os resultados.
+
+=====================================================================
+IMPORTANTE — PRIVACIDADE
+=====================================================================
+Este kit CONTÉM conteúdo da reunião e SAI da sua máquina quando você o envia a um
+agente de terceiros.{% if redacted %} PII (e-mails/CPF/telefones) foi redigida para [[PII-N]].{% else %}
+NÃO foi redigido. Rode `atado kit --redact` se quiser mascarar PII.{% endif %}
+Tamanho estimado: ~{{ approx_tokens }} tokens.
+
+=====================================================================
+DEPOIS DA RECONSTRUÇÃO
+=====================================================================
+Salve a resposta final do agente (os três blocos {{ S.tabela }}/{{ S.narrativa }}/{{ S.pendencias }})
+num arquivo .md e rode:
+    atado interview import resposta.md
+Isso atualiza seu atado.yaml (significados/aliases) e o out/context.yaml, fechando o loop.

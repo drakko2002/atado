@@ -195,3 +195,33 @@ def import_into_config(cfg_map: Any, parsed: dict[str, Any]) -> tuple[Any, dict[
             summary["added"].append(sigla)
 
     return cfg_map, summary
+
+
+def build_context_yaml(parsed: dict[str, Any], prior_path=None) -> str:
+    """context.yaml (F7): conhecimento acumulado que alimenta o próximo kit.
+
+    Schema: terms[] (sigla, significado, confianca, proveniencia, aliases),
+    open_questions (texto), narrative_present (bool).
+    """
+    import io
+    from ruamel.yaml import YAML
+
+    terms = []
+    for row in parsed.get("tabela", []):
+        terms.append({
+            "sigla": row["sigla"],
+            "significado": row["significado"] or None,
+            "confianca": row["confianca"] or None,
+            "proveniencia": row["proveniencia"] or None,
+            "aliases": list(row.get("aliases", [])),
+        })
+    data = {
+        "terms": terms,
+        "open_questions": parsed.get("pendencias", "").strip() or None,
+        "narrative_present": bool(parsed.get("narrativa", "").strip()),
+    }
+    y = YAML()
+    y.default_flow_style = False
+    buf = io.StringIO()
+    y.dump(data, buf)
+    return buf.getvalue()
