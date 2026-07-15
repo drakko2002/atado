@@ -53,3 +53,6 @@ im_angry.py
 
 # Projeto baseline (conteúdo do encontro, PII)
 baseline/
+
+# Scripts scratch do usuário (experimentos, fora do atado)
+scratch_*.py
