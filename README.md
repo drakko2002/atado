@@ -164,6 +164,24 @@ Ao habilitar `diarize`:
 O `atado transcribe` exibe esse aviso por escrito quando a diarização está ligada. *Isto não é
 aconselhamento jurídico.*
 
+Para diarização, é preciso aceitar **três** licenças gated na sua conta HF (o pyannote 4.x usa a
+pipeline *community-1*): [speaker-diarization-community-1](https://huggingface.co/pyannote/speaker-diarization-community-1),
+[speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1) e
+[segmentation-3.0](https://huggingface.co/pyannote/segmentation-3.0); e usar um `HF_TOKEN` com
+leitura de repositórios *gated*.
+
+### Governança de segredos (chaves não vazam)
+
+- **`HF_TOKEN` e chaves de provedores ficam só no `.env`** (gitignored) — nunca no `atado.yaml`
+  nem no repositório.
+- `atado check` **detecta** um valor tipo-token no `atado.yaml` e manda movê-lo para o `.env`.
+- Saídas e mensagens de erro passam por um **mascarador** (`[[..._REDACTED]]`) — nenhum segredo
+  vaza para `report.md`, logs ou stack traces.
+- `scripts/scan_secrets.sh` varre os arquivos rastreados; roda na **CI** e como **git hook**:
+  ```bash
+  git config core.hooksPath .githooks   # ativa o pre-commit que bloqueia segredos
+  ```
+
 ## Troubleshooting
 
 - **`libcudnn_ops_infer.so.8` não encontrado** → use `ctranslate2>=4.5` (matriz do atado, cuDNN 9).

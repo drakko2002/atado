@@ -115,8 +115,12 @@ def diarize_doc(
 
     diarization = pipe({"waveform": waveform, "sample_rate": 16000}, **kwargs)
 
+    # pyannote 4.x retorna DiarizeOutput (.speaker_diarization = Annotation);
+    # pyannote 3.x retorna a Annotation diretamente.
+    annotation = getattr(diarization, "speaker_diarization", diarization)
+
     turns: list[tuple[float, float, str]] = []
-    for turn, _track, speaker in diarization.itertracks(yield_label=True):
+    for turn, _track, speaker in annotation.itertracks(yield_label=True):
         turns.append((float(turn.start), float(turn.end), str(speaker)))
 
     assign_speakers_by_overlap(doc.segments, turns)

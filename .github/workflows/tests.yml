@@ -35,3 +35,10 @@ jobs:
 
       - name: Verify lazy-import boundary
         run: pytest -q tests/test_lazy_import.py
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan tracked files for leaked secrets (HF/provider/GitHub tokens)
+        run: bash scripts/scan_secrets.sh

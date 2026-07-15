@@ -11,12 +11,14 @@ from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from .audio import is_supported, normalize_audio, probe_duration
+from .audio import (is_supported, normalize_audio, probe_duration,
+                    extract_segment, probe_silences)
+from .chunks import plan_chunks, merge_chunks
 from .config import AtadoConfig, load_config
 from .glossary import apply_corrections, build_initial_prompt, load_wordlist, default_wordlist_path
 from .manifest import Manifest, file_input_hash, transcription_signature
 from .merge import _fmt_ref, _effective_offset
-from .models import TranscriptDoc
+from .models import TranscriptDoc, TranscriptMeta
 from .timeutil import format_hms
 from .workspace import Workspace, load_dotenv, get_hf_token
 from . import __version__
@@ -57,6 +59,70 @@ def _apply_correction_pass(doc: TranscriptDoc, cfg: AtadoConfig, wordlist) -> Co
             for orig, canon in subs:
                 subs_counter[f"{orig} → {canon}"] += 1
     return subs_counter
+
+
+def transcribe_long_file(
+    wav: Path,
+    cfg: AtadoConfig,
+    *,
+    source_file: str,
+    model: str,
+    device: str,
+    compute_type: str,
+    language: str,
+    initial_prompt: Optional[str],
+    source_start: Optional[float],
+    transcribe_fn: TranscribeFn,
+    chunk_dir: Path,
+    signature: str,
+    atado_version: str = "0.1.0",
+    log: Callable[[str], None] = lambda s: None,
+) -> TranscriptDoc:
+    """Transcreve um arquivo longo por blocos, com resume por marcador de chunk (D1.2)."""
+    duration = probe_duration(wav)
+    la = cfg.long_audio
+    silences = probe_silences(wav)
+    chunks = plan_chunks(duration, la.chunk_length, la.chunk_overlap, silences, la.silence_snap)
+    chunk_dir.mkdir(parents=True, exist_ok=True)
+    log(f"arquivo longo ({format_hms(duration)}) → {len(chunks)} blocos")
+
+    docs: list[TranscriptDoc] = []
+    t0 = time.time()
+    done_count = 0
+    for i, ch in enumerate(chunks):
+        cj = chunk_dir / f"{ch.index:04d}.json"
+        marker = chunk_dir / f"{ch.index:04d}.done"
+        if marker.exists() and marker.read_text(encoding="utf-8").strip() == signature and cj.exists():
+            docs.append(TranscriptDoc.model_validate_json(cj.read_text(encoding="utf-8")))
+            log(f"  bloco {i + 1}/{len(chunks)}: em cache")
+            continue
+        cw = chunk_dir / f"{ch.index:04d}.wav"
+        extract_segment(wav, ch.start, ch.end, cw)
+        cdoc = transcribe_fn(
+            cw, source_file=f"{source_file}#chunk{ch.index}", model=model, device=device,
+            compute_type=compute_type, language=language, initial_prompt=initial_prompt,
+            duration=ch.length, source_start=None, atado_version=atado_version,
+        )
+        cj.write_text(cdoc.model_dump_json(), encoding="utf-8")
+        marker.write_text(signature, encoding="utf-8")  # marca só após o json OK (resumível)
+        try:
+            cw.unlink()
+        except OSError:
+            pass
+        docs.append(cdoc)
+        done_count += 1
+        elapsed = time.time() - t0
+        per = elapsed / done_count
+        eta = per * (len(chunks) - (i + 1))
+        log(f"  bloco {i + 1}/{len(chunks)} em {elapsed:.0f}s (ETA {format_hms(eta)})")
+
+    segments = merge_chunks(chunks, docs)
+    meta = TranscriptMeta(
+        source_file=source_file, duration=duration, model=model, language=language,
+        diarized=False, atado_version=atado_version, source_start=source_start,
+        extra={"device": device, "compute_type": compute_type, "chunks": len(chunks)},
+    )
+    return TranscriptDoc(meta=meta, segments=segments)
 
 
 def transcribe_workspace(
@@ -145,12 +211,21 @@ def transcribe_workspace(
             normalize_audio(audio, wav)
             duration = probe_duration(wav)
             source_start = cfg.source_start_for(name)
-            doc = transcribe_fn(
-                wav, source_file=name, model=model_name, device=hw["device"],
-                compute_type=hw["compute_type"], language=cfg.language,
-                initial_prompt=initial_prompt, duration=duration,
-                source_start=source_start, atado_version=__version__,
-            )
+            if duration > cfg.long_audio.chunk_length:  # D1: arquivo longo → por blocos
+                doc = transcribe_long_file(
+                    wav, cfg, source_file=name, model=model_name, device=hw["device"],
+                    compute_type=hw["compute_type"], language=cfg.language,
+                    initial_prompt=initial_prompt, source_start=source_start,
+                    transcribe_fn=transcribe_fn, chunk_dir=ws.work / "chunks" / audio.stem,
+                    signature=signature, atado_version=__version__, log=log,
+                )
+            else:
+                doc = transcribe_fn(
+                    wav, source_file=name, model=model_name, device=hw["device"],
+                    compute_type=hw["compute_type"], language=cfg.language,
+                    initial_prompt=initial_prompt, duration=duration,
+                    source_start=source_start, atado_version=__version__,
+                )
             if diarize_enabled and diarize_fn is not None:
                 try:
                     doc = diarize_fn(doc, wav, hf_token=hf_token,
@@ -226,8 +301,9 @@ def _print_transcribe_summary(report, console):
     if report["substitutions"]:
         top = ", ".join(f"{k} ({v}x)" for k, v in report["substitutions"].most_common(8))
         console.print(f"  correções: {top}")
+    from .security import mask_secrets  # nunca ecoar um segredo numa mensagem de erro
     for name, msg in errs:
-        console.print(f"  [red]erro[/red] {name}: {msg}")
+        console.print(f"  [red]erro[/red] {name}: {mask_secrets(str(msg))}")
 
 
 def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err, output_dir=None):

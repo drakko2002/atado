@@ -148,6 +148,16 @@ def check():
     else:
         row("atado.yaml", None, f"nenhum (rode `atado init`) — buscado em {ws.root}")
 
+    # guardrail: segredos nunca no atado.yaml (devem ficar no .env)
+    if ws.config_path.exists():
+        from .security import scan_text
+        found = scan_text(ws.config_path.read_text(encoding="utf-8"))
+        if found:
+            row("segredos", False,
+                f"segredo detectado no atado.yaml ({', '.join(found)}) — mova para .env!")
+        else:
+            row("segredos", True, "nenhum segredo em atado.yaml")
+
     console.print(table)
     if not ok_all:
         console.print("\n[yellow]Alguns itens precisam de atenção antes de transcrever.[/yellow]")

@@ -68,7 +68,9 @@ def build_report_markdown(
 
 
 def write_report(ws, cfg: AtadoConfig, report: dict, index: dict, suspects: list) -> Path:
+    from .security import mask_secrets  # defesa em profundidade: nenhum segredo no relatório
     ws.out.mkdir(parents=True, exist_ok=True)
     path = ws.out / "report.md"
-    path.write_text(build_report_markdown(cfg, report, index, suspects), encoding="utf-8")
+    path.write_text(mask_secrets(build_report_markdown(cfg, report, index, suspects)),
+                    encoding="utf-8")
     return path

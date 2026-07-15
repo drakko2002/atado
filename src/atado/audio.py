@@ -49,6 +49,45 @@ def normalize_audio(src: str | Path, dst: str | Path) -> Path:
     return dst
 
 
+def extract_segment(src_wav: str | Path, start: float, end: float, dst: str | Path) -> Path:
+    """Extrai [start, end] de um WAV para outro WAV (re-encode leve, mono 16k)."""
+    dst = Path(dst)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.run(
+        ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+         "-i", str(src_wav), "-ss", f"{start:.3f}", "-to", f"{end:.3f}",
+         "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", str(dst)],
+        capture_output=True, text=True,
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg falhou ao extrair [{start},{end}]:\n{proc.stderr.strip()}")
+    return dst
+
+
+def probe_silences(path: str | Path, noise_db: float = -30.0, min_dur: float = 0.4) -> list[float]:
+    """Retorna os centros dos silêncios (s) via ffmpeg silencedetect — pontos bons de corte."""
+    if shutil.which("ffmpeg") is None:
+        return []
+    proc = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-i", str(path),
+         "-af", f"silencedetect=noise={noise_db}dB:d={min_dur}", "-f", "null", "-"],
+        capture_output=True, text=True,
+    )
+    starts, ends = [], []
+    for line in proc.stderr.splitlines():
+        if "silence_start:" in line:
+            try: starts.append(float(line.split("silence_start:")[1].strip().split()[0]))
+            except (ValueError, IndexError): pass
+        elif "silence_end:" in line:
+            try: ends.append(float(line.split("silence_end:")[1].split("|")[0].strip().split()[0]))
+            except (ValueError, IndexError): pass
+    centers = []
+    for i, s in enumerate(starts):
+        e = ends[i] if i < len(ends) else s
+        centers.append((s + e) / 2.0)
+    return centers
+
+
 def probe_duration(path: str | Path) -> float:
     """Duração em segundos via ffprobe (0.0 se indisponível)."""
     if shutil.which("ffprobe") is None:

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Bloqueia o commit se houver segredo nos arquivos staged.
+# Ative uma vez: git config core.hooksPath .githooks
+set -uo pipefail
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+# shellcheck disable=SC2086
+bash scripts/scan_secrets.sh $staged
