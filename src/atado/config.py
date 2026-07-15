@@ -88,6 +88,10 @@ class AtadoConfig(BaseModel):
     output: OutputCfg = Field(default_factory=OutputCfg)
     correction: CorrectionCfg = Field(default_factory=CorrectionCfg)
 
+    # SPEC D / D1: onde salvar as saídas (null = out/ do projeto) e chunking de longos.
+    output_dir: Optional[str] = None
+    long_audio: LongAudioCfg = Field(default_factory=LongAudioCfg)
+
     # ------------------------------------------------------------------ helpers
     def source_start_for(self, filename: str) -> Optional[float]:
         """Offset (segundos) do arquivo, ou None se não configurado."""

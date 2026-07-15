@@ -123,10 +123,20 @@ def check():
     except Exception as e:
         row("torch/CUDA", False, f"erro: {e}")
 
-    # token HF
+    # token HF (+ validação best-effort via whoami)
     tok = get_hf_token()
-    row("HF_TOKEN", tok is not None,
-        "presente (diarização OK)" if tok else "ausente — necessário só p/ diarização (.env)")
+    if not tok:
+        row("HF_TOKEN", None, "ausente — necessário só p/ diarização (.env)")
+    else:
+        try:
+            from huggingface_hub import HfApi  # lazy (parte do stack asr)
+            who = HfApi().whoami(token=tok)
+            row("HF_TOKEN", True, f"válido (usuário: {who.get('name','?')})")
+        except ImportError:
+            row("HF_TOKEN", None, "presente (instale [asr] para validar)")
+        except Exception:
+            row("HF_TOKEN", False,
+                "INVÁLIDO — gere um novo token 'Read' em huggingface.co/settings/tokens")
 
     # atado.yaml
     if ws.config_path.exists():
