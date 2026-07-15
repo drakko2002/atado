@@ -50,3 +50,6 @@ htmlcov/
 
 # Script de experimento do usuário (não faz parte do atado)
 im_angry.py
+
+# Projeto baseline (conteúdo do encontro, PII)
+baseline/
