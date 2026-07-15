@@ -45,6 +45,15 @@ class Workspace:
         for d in (self.audios, self.work, self.transcripts, self.out):
             d.mkdir(parents=True, exist_ok=True)
 
+    def audio_mtimes(self) -> dict[str, float]:
+        """mtime de cada áudio de entrada (para order: mtime)."""
+        out: dict[str, float] = {}
+        if self.audios.exists():
+            for p in self.audios.iterdir():
+                if p.is_file():
+                    out[p.name] = p.stat().st_mtime
+        return out
+
     def load_transcripts(self) -> list[TranscriptDoc]:
         docs: list[TranscriptDoc] = []
         if not self.transcripts.exists():

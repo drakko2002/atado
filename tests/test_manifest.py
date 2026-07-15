@@ -57,3 +57,20 @@ def test_failed_status_reprocesses(tmp_path):
     m = Manifest.load(tmp_path / "manifest.json")
     m.record("a.mp3", input_hash="abc", signature="sig1", outputs=[], status="error")
     assert m.needs_processing("a.mp3", input_hash="abc", signature="sig1") is True
+
+
+def test_signature_changes_with_max_speakers():
+    from atado.config import AtadoConfig
+    a = AtadoConfig(max_speakers=None)
+    b = AtadoConfig(max_speakers=3)
+    s1 = transcription_signature(a, model="large-v3", language="pt", diarize=True)
+    s2 = transcription_signature(b, model="large-v3", language="pt", diarize=True)
+    assert s1 != s2
+
+
+def test_signature_changes_with_compute_type():
+    from atado.config import AtadoConfig
+    cfg = AtadoConfig()
+    s1 = transcription_signature(cfg, "large-v3", "pt", True, compute_type="int8")
+    s2 = transcription_signature(cfg, "large-v3", "pt", True, compute_type="float16")
+    assert s1 != s2

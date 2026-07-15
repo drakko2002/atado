@@ -136,3 +136,39 @@ class TestImport:
         assert SENTINELS["tabela"] == "TABELA_RESOLVIDA"
         assert SENTINELS["narrativa"] == "NARRATIVA"
         assert SENTINELS["pendencias"] == "PENDENCIAS"
+
+
+def test_alias_dedup_same_line():
+    import textwrap
+    from atado.config import load_commented, dumps_commented
+    from atado.interview import parse_agent_output, import_into_config
+    cfg_text = textwrap.dedent("""
+        glossary:
+          terms:
+            - term: ORCID
+              meaning: null
+              aliases: []
+    """)
+    import tempfile, os
+    fd, p = tempfile.mkstemp(suffix=".yaml"); os.write(fd, cfg_text.encode()); os.close(fd)
+    agent = textwrap.dedent("""
+        ## TABELA_RESOLVIDA
+        | Sigla | Significado | Confiança | Proveniência | Variantes/Aliases |
+        |---|---|---|---|---|
+        | ORCID | X | alta | y | ORSID, orsid, ORSID |
+    """)
+    cmap = load_commented(p)
+    updated, summary = import_into_config(cmap, parse_agent_output(agent))
+    out = dumps_commented(updated)
+    # ORSID deve aparecer só uma vez como alias
+    assert out.lower().count("orsid") == 1
+
+
+def test_context_yaml_accumulates_prior(tmp_path):
+    from atado.interview import parse_agent_output, build_context_yaml
+    prior = tmp_path / "context.yaml"
+    prior.write_text("terms:\n- sigla: CGD\n  significado: Comite\n  aliases: []\n"
+                     "open_questions: null\nnarrative_present: false\n", encoding="utf-8")
+    agent = ("## TABELA_RESOLVIDA\n| Sigla | Significado |\n|---|---|\n| SETEC | Sec |\n")
+    ctx = build_context_yaml(parse_agent_output(agent), prior_path=prior)
+    assert "CGD" in ctx and "SETEC" in ctx  # acumulou o anterior + o novo

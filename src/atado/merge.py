@@ -95,9 +95,10 @@ def _speakers_in(doc: TranscriptDoc) -> list[str]:
     return seen
 
 
-def consolidate_markdown(docs: list[TranscriptDoc], cfg: AtadoConfig) -> str:
+def consolidate_markdown(docs: list[TranscriptDoc], cfg: AtadoConfig,
+                         mtimes: Optional[dict[str, float]] = None) -> str:
     """Corpus legível: sumário + transcripts em sequência, refs local(+global)."""
-    ordered = order_docs(docs, cfg)
+    ordered = order_docs(docs, cfg, mtimes=mtimes)
     total_dur = sum(d.meta.duration for d in ordered)
     has_offsets = any(_effective_offset(d, cfg) is not None for d in ordered)
 
@@ -135,9 +136,10 @@ def consolidate_markdown(docs: list[TranscriptDoc], cfg: AtadoConfig) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def consolidate_json(docs: list[TranscriptDoc], cfg: AtadoConfig) -> dict[str, Any]:
+def consolidate_json(docs: list[TranscriptDoc], cfg: AtadoConfig,
+                     mtimes: Optional[dict[str, float]] = None) -> dict[str, Any]:
     """Estrutura compacta machine-readable (sem words[]), com global_start quando há offset."""
-    ordered = order_docs(docs, cfg)
+    ordered = order_docs(docs, cfg, mtimes=mtimes)
     files_out = []
     for d in ordered:
         offset = _effective_offset(d, cfg)

@@ -155,9 +155,10 @@ def merge():
         raise typer.Exit(1)
     from .merge import consolidate_markdown, consolidate_json
     ws.out.mkdir(parents=True, exist_ok=True)
-    (ws.out / "consolidated.md").write_text(consolidate_markdown(docs, cfg), encoding="utf-8")
+    mtimes = ws.audio_mtimes() if cfg.order == "mtime" else None
+    (ws.out / "consolidated.md").write_text(consolidate_markdown(docs, cfg, mtimes), encoding="utf-8")
     (ws.out / "consolidated.json").write_text(
-        json.dumps(consolidate_json(docs, cfg), ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(consolidate_json(docs, cfg, mtimes), ensure_ascii=False, indent=2), encoding="utf-8"
     )
     console.print(f"[green]✓[/green] {len(docs)} transcripts → out/consolidated.md, out/consolidated.json")
 

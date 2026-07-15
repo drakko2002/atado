@@ -58,3 +58,21 @@ def test_unknown_provider_raises():
     import pytest
     with pytest.raises(ProviderError):
         get_provider("inexistente")
+
+
+def test_resume_from_assistant_ending_reads_user_first():
+    # regressão: sessão salva termina em 'assistant'; ao resumir, NÃO pode haver
+    # dois 'assistant' seguidos (quebraria a Messages API).
+    prov = FakeProvider()
+    prior = [
+        {"role": "user", "content": "corpus"},
+        {"role": "assistant", "content": "plano"},
+    ]
+    inputs = iter(["minha resposta", "encerrar"])
+    session = run_session(prov, "P", "corpus", input_fn=lambda: next(inputs),
+                          output_fn=lambda x: None, prior_messages=prior)
+    roles = [m["role"] for m in session["messages"]]
+    # nunca dois 'assistant' consecutivos
+    assert not any(roles[i] == roles[i + 1] == "assistant" for i in range(len(roles) - 1))
+    # a fala do usuário entra antes do próximo assistant
+    assert roles[:4] == ["user", "assistant", "user", "assistant"]

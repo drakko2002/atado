@@ -190,6 +190,7 @@ def import_into_config(cfg_map: Any, parsed: dict[str, Any]) -> tuple[Any, dict[
                 for a in aliases:
                     if _norm(a) not in existing_norm and _norm(a) != key:
                         existing.append(a)
+                        existing_norm.add(_norm(a))  # dedup aliases repetidos na mesma linha
                         summary["aliases_added"].append((sigla, a))
                 entry["aliases"] = existing
         else:
@@ -205,27 +206,40 @@ def build_context_yaml(parsed: dict[str, Any], prior_path=None) -> str:
     """context.yaml (F7): conhecimento acumulado que alimenta o próximo kit.
 
     Schema: terms[] (sigla, significado, confianca, proveniencia, aliases),
-    open_questions (texto), narrative_present (bool).
+    open_questions (texto), narrative_present (bool). ACUMULA sobre o context.yaml
+    anterior (termos novos sobrescrevem os antigos de mesma sigla; demais preservados).
     """
     import io
+    from pathlib import Path
     from ruamel.yaml import YAML
 
-    terms = []
+    y = YAML()
+    y.default_flow_style = False
+
+    merged: dict[str, dict] = {}
+    if prior_path and Path(prior_path).exists():
+        try:
+            prior = y.load(Path(prior_path).read_text(encoding="utf-8")) or {}
+            for t in prior.get("terms", []) or []:
+                if isinstance(t, dict) and t.get("sigla"):
+                    merged[_norm(t["sigla"])] = dict(t)
+        except Exception:
+            pass  # nunca corromper por causa de um prior ilegível
+
     for row in parsed.get("tabela", []):
-        terms.append({
+        merged[_norm(row["sigla"])] = {
             "sigla": row["sigla"],
             "significado": row["significado"] or None,
             "confianca": row["confianca"] or None,
             "proveniencia": row["proveniencia"] or None,
             "aliases": list(row.get("aliases", [])),
-        })
+        }
+
     data = {
-        "terms": terms,
+        "terms": list(merged.values()),
         "open_questions": parsed.get("pendencias", "").strip() or None,
         "narrative_present": bool(parsed.get("narrativa", "").strip()),
     }
-    y = YAML()
-    y.default_flow_style = False
     buf = io.StringIO()
     y.dump(data, buf)
     return buf.getvalue()

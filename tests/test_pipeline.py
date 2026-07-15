@@ -106,3 +106,37 @@ def test_resilience_one_file_fails(tmp_path):
     assert statuses["clip2.wav"] == "error"
     assert (ws.transcripts / "clip1.json").exists()
     assert not (ws.transcripts / "clip2.json").exists()
+
+
+def fake_transcribe_with_words(wav, *, source_file, model, device, compute_type, language,
+                               initial_prompt=None, duration=0.0, source_start=None,
+                               atado_version="0.1.0", **kw):
+    from atado.models import Word
+    return TranscriptDoc(
+        meta=TranscriptMeta(source_file=source_file, duration=duration, model=model,
+                            language=language, diarized=False, atado_version=atado_version,
+                            source_start=source_start, extra={"device": device}),
+        segments=[Segment(start=0.0, end=1.0, text="a ceteq vai",
+                          words=[Word(word="a", start=0.0, end=0.1),
+                                 Word(word="ceteq", start=0.1, end=0.5),
+                                 Word(word="vai", start=0.5, end=1.0)])],
+    )
+
+
+def test_correction_updates_words(tmp_path):
+    ws = _make_ws(tmp_path)
+    cfg = load_config(ws.config_path)
+    transcribe_workspace(ws, cfg, transcribe_fn=fake_transcribe_with_words)
+    doc = TranscriptDoc.model_validate_json((ws.transcripts / "clip1.json").read_text())
+    words = [w.word for w in doc.segments[0].words]
+    assert "CETEC" in words       # word[] corrigido junto com o texto
+    assert "ceteq" not in words
+
+
+def test_config_device_used_without_flag(tmp_path):
+    ws = _make_ws(tmp_path)
+    cfg = load_config(ws.config_path)
+    cfg.device = "cpu"; cfg.compute_type = "int8"
+    report = transcribe_workspace(ws, cfg, transcribe_fn=fake_transcribe_with_words)
+    assert report["device"] == "cpu"       # precedência: config quando não há flag
+    assert report["compute_type"] == "int8"

@@ -34,6 +34,14 @@ def run_session(
     rounds = 0
     while rounds < max_rounds:
         rounds += 1
+        # Invariante da Messages API (Anthropic/Gemini): a conversa deve terminar em 'user'
+        # antes de chamar o modelo. No --resume a sessão salva termina em 'assistant', então
+        # lemos a fala do usuário primeiro (evita dois 'assistant' seguidos → HTTP 400).
+        if messages and messages[-1].get("role") == "assistant":
+            user = input_fn()
+            if user is None or user.strip().lower() in _STOP:
+                break
+            messages.append({"role": "user", "content": user})
         reply = provider.chat(messages, model=model, system=system_prompt)
         messages.append({"role": "assistant", "content": reply})
         output_fn(reply)

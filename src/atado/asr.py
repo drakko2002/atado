@@ -19,13 +19,20 @@ _ALIGN_CACHE: dict = {}
 
 
 def _prepare_cuda_libs() -> None:
-    """Garante as libs cuDNN/cuBLAS do torch no LD_LIBRARY_PATH (evita libcudnn_*.so.8/9
-    não encontrado ao CTranslate2 carregar na GPU). Idempotente."""
+    """Pré-carrega as libs CUDA do torch para o CTranslate2 encontrar cuDNN/cuBLAS na GPU.
+
+    Nota: mutar LD_LIBRARY_PATH em runtime NÃO afeta o processo atual (o ld.so já resolveu
+    os paths no startup); serve só para subprocessos. O mecanismo que de fato funciona é
+    importar torch ANTES do CTranslate2 usar a GPU — torch carrega sua cuDNN 9 no processo,
+    e o CT2 reaproveita esses símbolos. Fazemos isso explicitamente aqui.
+    """
     try:
-        base = Path(sys.prefix) / "lib"
-        # localizar site-packages/nvidia/*/lib
+        import torch  # noqa: F401 — pré-carrega cuDNN/cuBLAS no processo
+    except Exception:
+        pass
+    try:
         import site
-        roots = [Path(p) for p in site.getsitepackages()] + [base]
+        roots = [Path(p) for p in site.getsitepackages()] + [Path(sys.prefix) / "lib"]
         libdirs = []
         for root in roots:
             nv = root / "nvidia"
@@ -34,7 +41,7 @@ def _prepare_cuda_libs() -> None:
                     d = nv / pkg / "lib"
                     if d.is_dir():
                         libdirs.append(str(d))
-        if libdirs:
+        if libdirs:  # best-effort para subprocessos
             cur = os.environ.get("LD_LIBRARY_PATH", "")
             parts = [d for d in libdirs if d not in cur.split(":")]
             if parts:

@@ -28,8 +28,13 @@ def file_input_hash(path: str | Path, chunk: int = 1 << 20) -> str:
     return h.hexdigest()
 
 
-def transcription_signature(cfg: AtadoConfig, model: str, language: str, diarize: bool) -> str:
-    """Assinatura dos parâmetros que afetam o resultado da transcrição."""
+def transcription_signature(cfg: AtadoConfig, model: str, language: str, diarize: bool,
+                            compute_type: Optional[str] = None) -> str:
+    """Assinatura dos parâmetros que afetam o resultado da transcrição.
+
+    Inclui min/max_speakers e compute_type: mudá-los DEVE invalidar o cache
+    (diarização e quantização alteram o resultado).
+    """
     glossary_repr = {
         "initial_prompt": build_initial_prompt(cfg.glossary),
         "aliases": sorted(
@@ -42,6 +47,9 @@ def transcription_signature(cfg: AtadoConfig, model: str, language: str, diarize
         "model": model,
         "language": language,
         "diarize": bool(diarize),
+        "min_speakers": cfg.min_speakers,
+        "max_speakers": cfg.max_speakers,
+        "compute_type": compute_type,
         "glossary": glossary_repr,
     }
     blob = json.dumps(payload, ensure_ascii=False, sort_keys=True)

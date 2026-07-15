@@ -43,11 +43,17 @@ def _apply_correction_pass(doc: TranscriptDoc, cfg: AtadoConfig, wordlist) -> Co
     subs_counter: Counter = Counter()
     if not cfg.correction.enabled:
         return subs_counter
+    from .glossary import normalize
     for seg in doc.segments:
         new_text, subs = apply_corrections(seg.text, cfg.glossary, wordlist,
                                            threshold=cfg.correction.threshold)
         if subs:
             seg.text = new_text
+            sub_map = {normalize(orig): canon for orig, canon in subs}
+            for w in seg.words:  # mantém words[] consistente com o texto corrigido
+                canon = sub_map.get(normalize(w.word))
+                if canon:
+                    w.word = canon
             for orig, canon in subs:
                 subs_counter[f"{orig} → {canon}"] += 1
     return subs_counter
@@ -73,6 +79,9 @@ def transcribe_workspace(
     from .hardware import detect_hardware
 
     model_name = model or cfg.model
+    # precedência: flag > config > autodetecção
+    device = device or cfg.device
+    compute_type = compute_type or cfg.compute_type
     hw = detect_hardware(model=model_name, device=device, compute_type=compute_type)
     if transcribe_fn is None:
         from .asr import whisperx_transcribe
@@ -104,7 +113,8 @@ def transcribe_workspace(
             log(f"⚠️ duração mediana {median:.0f}s < 30s: diarização terá valor limitado.")
 
     manifest = Manifest.load(ws.manifest_path)
-    signature = transcription_signature(cfg, model_name, cfg.language, diarize_enabled)
+    signature = transcription_signature(cfg, model_name, cfg.language, diarize_enabled,
+                                        compute_type=hw["compute_type"])
     initial_prompt = build_initial_prompt(cfg.glossary)
 
     report: dict[str, Any] = {
@@ -231,9 +241,10 @@ def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err)
         err.print("[yellow]Nenhum transcript gerado — nada a consolidar.[/yellow]")
         return
     ws.out.mkdir(parents=True, exist_ok=True)
-    (ws.out / "consolidated.md").write_text(consolidate_markdown(docs, cfg), encoding="utf-8")
+    mtimes = ws.audio_mtimes() if cfg.order == "mtime" else None
+    (ws.out / "consolidated.md").write_text(consolidate_markdown(docs, cfg, mtimes), encoding="utf-8")
     (ws.out / "consolidated.json").write_text(
-        _json.dumps(consolidate_json(docs, cfg), ensure_ascii=False, indent=2), encoding="utf-8")
+        _json.dumps(consolidate_json(docs, cfg, mtimes), ensure_ascii=False, indent=2), encoding="utf-8")
 
     term_pairs = [(t.term, t.meaning) for t in cfg.glossary.terms] + [(t, None) for t in cfg.track_extra]
     meanings = {t: m for t, m in term_pairs}
