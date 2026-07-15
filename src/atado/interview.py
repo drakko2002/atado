@@ -101,6 +101,7 @@ def _parse_table(block: str) -> list[dict[str, Any]]:
     i_prov = col_index("proveniencia", "provenance", "fonte")
     i_alias = col_index("variantes/aliases", "aliases", "variantes", "alias")
 
+    _HEADER_WORDS = {"sigla", "termo", "term"}
     out: list[dict[str, Any]] = []
     for line in rows_raw[1:]:
         c = cells(line)
@@ -108,6 +109,9 @@ def _parse_table(block: str) -> list[dict[str, Any]]:
         if all(set(x) <= set("-: ") for x in c):
             continue
         if i_sigla < 0 or i_sigla >= len(c) or not c[i_sigla]:
+            continue
+        # pula cabeçalhos repetidos (2ª tabela no mesmo bloco)
+        if _strip_accents(c[i_sigla]).lower() in _HEADER_WORDS:
             continue
 
         def get(idx: int) -> str:

@@ -57,6 +57,26 @@ class TestParse:
             parse_agent_output("nenhum bloco aqui")
         assert "TABELA_RESOLVIDA" in str(exc.value)
 
+    def test_second_table_header_not_parsed_as_data(self):
+        # bug real: uma 2ª tabela no mesmo bloco não pode virar um termo "Sigla"
+        out = textwrap.dedent(
+            """
+            ## TABELA_RESOLVIDA
+            | Sigla | Significado | Confiança | Proveniência |
+            |---|---|---|---|
+            | CGD | Comitê | confirmada | ref |
+
+            ### Termos novos
+            | Sigla | Significado provável | Confiança | Proveniência |
+            |---|---|---|---|
+            | SEI | Sistema Eletrônico | média | transcrição |
+            """
+        )
+        parsed = parse_agent_output(out)
+        siglas = [r["sigla"] for r in parsed["tabela"]]
+        assert "Sigla" not in siglas          # header repetido ignorado
+        assert "CGD" in siglas and "SEI" in siglas
+
 
 class TestValidateField:
     def test_rejects_yaml_tag_injection(self):

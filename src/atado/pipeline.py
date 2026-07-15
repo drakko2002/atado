@@ -142,8 +142,15 @@ def transcribe_workspace(
                 source_start=source_start, atado_version=__version__,
             )
             if diarize_enabled and diarize_fn is not None:
-                doc = diarize_fn(doc, wav, hf_token=hf_token,
-                                 min_speakers=cfg.min_speakers, max_speakers=cfg.max_speakers)
+                try:
+                    doc = diarize_fn(doc, wav, hf_token=hf_token,
+                                     min_speakers=cfg.min_speakers, max_speakers=cfg.max_speakers)
+                except Exception as de:
+                    # degrada com elegância: desliga diarização p/ os próximos e mantém
+                    # a transcrição (sem falantes) em vez de perder o arquivo.
+                    diarize_enabled = False
+                    report["diarize_note"] = f"diarização desativada após falha: {de}"
+                    log(f"⚠️ diarização falhou ({de}); seguindo SEM diarização.")
             subs = _apply_correction_pass(doc, cfg, wordlist)
             report["substitutions"].update(subs)
 
