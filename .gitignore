@@ -1,0 +1,52 @@
+# --- Segredos e ambiente (NUNCA versionar) ---
+.env
+.env.*
+!.env.example
+*.key
+*.token
+
+# Ambientes virtuais / conda
+.venv/
+venv/
+ENV/
+*.pyc
+__pycache__/
+.uv-cache/
+*.log
+
+# --- Dados do usuário e intermediários do atado ---
+# work/ contém WAVs normalizados, manifest, e o redaction_map.json (PII) — nunca versionar
+work/
+**/work/
+# saídas de projetos de exemplo (grandes, específicas do usuário)
+out/
+**/out/
+
+# --- Amostras/áudio + conteúdo do encontro (institucional, PII/LGPD — não versionar) ---
+# Ignora a árvore samples/ inteira: áudios, imagem de contexto e a transcrição de
+# referência contêm nomes reais de participantes e conteúdo institucional.
+samples/
+
+# --- Modelos / caches de ML ---
+*.pt
+*.pth
+*.ckpt
+.cache/
+models/
+
+# --- Build/dist ---
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- IDE/OS ---
+.vscode/
+.idea/
+.DS_Store
+
+# Script de experimento do usuário (não faz parte do atado)
+im_angry.py

@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "atado"
+version = "0.1.0"
+description = "Transcritor local de reuniões fragmentadas (PT-BR) com índice de termos e reconstrução de contexto por IA."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10,<3.13"
+authors = [{ name = "cesar" }]
+keywords = ["whisper", "whisperx", "transcription", "diarization", "pt-br", "cli"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Environment :: Console",
+]
+
+# --- Caminho LEVE (init/check/merge/terms/kit/interview): sem torch ---
+dependencies = [
+  "typer>=0.12",
+  "rich>=13.0",
+  "pydantic>=2.6",
+  "ruamel.yaml>=0.18",       # preserva comentários/ordem no atado.yaml (E6)
+  "rapidfuzz>=3.6",          # passe de correção fuzzy (E2)
+  "jinja2>=3.1",             # templates do kit / protocolo
+  "platformdirs>=4.0",
+]
+
+[project.optional-dependencies]
+# --- Caminho PESADO de ASR (matriz validada em 2026-07-15, py3.12 + CUDA 12 + cuDNN 9) ---
+# Instale as wheels CUDA a partir do índice do PyTorch (ver README). ctranslate2>=4.5 exige cuDNN 9.
+asr = [
+  "torch>=2.6,<2.9",
+  "torchaudio>=2.6,<2.9",
+  "ctranslate2>=4.5",        # cuDNN 9 / CUDA 12 — evita libcudnn_ops_infer.so.8
+  "faster-whisper>=1.1",
+  "whisperx>=3.8",
+  "pyannote.audio>=3.1",     # 4.x usa a pipeline community-1
+]
+# --- Adapters de provedores de IA (F9, opcional) ---
+providers = [
+  "anthropic>=0.40",
+  "openai>=1.40",
+  "google-genai>=0.3",
+  # ollama usa HTTP simples via 'requests'
+  "requests>=2.31",
+]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+]
+
+[project.scripts]
+atado = "atado.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/drakko2002/atado"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/atado"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/atado/templates" = "atado/templates"
+"src/atado/wordlist_pt.txt" = "atado/wordlist_pt.txt"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
