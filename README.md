@@ -145,6 +145,25 @@ preservando ocorrências de termos) ou `--terms-only` (só o índice de termos).
 Nomes de participantes ficam como `SPEAKER_xx`; a redação por regex é **best-effort**
 (números falados por extenso podem escapar). Tokens/segredos sempre via `.env`, nunca no repo.
 
+**Princípio:** a transcrição é sua. O `atado` é local-first e o autor do projeto **não tem —
+e não pretende ter — acesso a nenhuma transcrição feita por usuários.**
+
+### Diarização e LGPD
+
+A diarização (identificação de "quem fala") processa características da **voz**, que é **dado
+pessoal** (podendo ser sensível/biométrico conforme o uso) sob a **LGPD (Lei 13.709/2018)**.
+Ao habilitar `diarize`:
+
+- Você declara ter **base legal** para gravar e tratar esses dados (consentimento dos
+  participantes ou outra hipótese dos arts. 7º/11) e ser o **responsável pelo tratamento**.
+- O `atado` rotula falantes como `SPEAKER_00`, `SPEAKER_01`… e **não os identifica**; associar
+  nomes reais é decisão sua e amplia suas obrigações de proteção.
+- O processamento é **100% local** — nada é enviado a terceiros nesta etapa.
+- **Minimização**: use `--no-diarize` se não precisar de falantes.
+
+O `atado transcribe` exibe esse aviso por escrito quando a diarização está ligada. *Isto não é
+aconselhamento jurídico.*
+
 ## Troubleshooting
 
 - **`libcudnn_ops_infer.so.8` não encontrado** → use `ctranslate2>=4.5` (matriz do atado, cuDNN 9).

@@ -198,6 +198,9 @@ def cmd_transcribe(ws, *, only, force, no_diarize, device, model, compute_type, 
         cfg = load_config(ws.config_path)
     except ValueError as e:
         err.print(f"[red]{e}[/red]"); raise SystemExit(1)
+    if cfg.diarize and not no_diarize:
+        from .notices import LGPD_DIARIZATION
+        console.print(f"[yellow]{LGPD_DIARIZATION}[/yellow]\n")
     hf = get_hf_token()
     report = transcribe_workspace(
         ws, cfg, only=only, force=force, no_diarize=no_diarize, device=device,
