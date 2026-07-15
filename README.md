@@ -122,6 +122,25 @@ correction:
   threshold: 80
 ```
 
+## Arquivos longos (1–2h) e onde salvar
+
+Reuniões reais são longas. Quando um áudio passa de `long_audio.chunk_length` (padrão 10 min),
+o `atado` transcreve **por blocos**: corta em silêncios, transcreve cada bloco, mostra
+**progresso + ETA**, e **retoma de onde parou** se o processo cair (marcadores por bloco em
+`work/chunks/`). O resultado é um único transcript com timestamps corretos.
+
+```yaml
+output_dir: "~/transcricoes/cgd"   # salvar out/ fora do projeto (padrão: out/)
+long_audio:
+  chunk_length: 600                # segundos por bloco (10 min)
+  chunk_overlap: 3
+  silence_snap: 30                 # corta no silêncio mais próximo da fronteira
+```
+
+Diarização de arquivos longos roda numa passada única sobre o arquivo (é o passo mais pesado —
+o `atado` avisa; use `--no-diarize` ou `--model medium` se faltar VRAM). Toda saída respeita
+`--output-dir`/`output_dir`; segredos e o mapa de redação nunca vão para lá (ficam em `work/`).
+
 ## Usando o kit com cada agente
 
 - **Claude (claude.ai)**: nova conversa → anexe todos os `.md` do `out/kit/` → "Siga o `00_PROTOCOLO.md`."

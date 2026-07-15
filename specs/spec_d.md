@@ -33,6 +33,10 @@ Cada fase posterior vira sua própria spec (design → plano → implementação
 
 ## 3. Fase D1 — arquivos longos + `output_dir` [DETALHADA]
 
+> **STATUS: D1 IMPLEMENTADA (v0.2.0).** output_dir, chunking (silence-snap + overlap + dedup),
+> resume por bloco, progresso/ETA e diarização de arquivo longo estão no código e testados
+> (incl. validação end-to-end com ASR real). D2–D4 permanecem esboço.
+
 ### 3.1 Objetivos
 1. Transcrever arquivos de 1–2 h (e além) com **memória limitada** e **sem perder trabalho**
    se o processo cair no meio.

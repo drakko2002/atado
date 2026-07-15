@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "atado"
-version = "0.1.0"
+version = "0.2.0"
 description = "Transcritor local de reuniões fragmentadas (PT-BR) com índice de termos e reconstrução de contexto por IA."
 readme = "README.md"
 license = { text = "MIT" }

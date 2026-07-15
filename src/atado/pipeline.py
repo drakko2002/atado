@@ -227,6 +227,9 @@ def transcribe_workspace(
                     source_start=source_start, atado_version=__version__,
                 )
             if diarize_enabled and diarize_fn is not None:
+                if duration > 1800:  # >30 min: diarização é o passo mais pesado (VRAM/tempo)
+                    log(f"  diarizando {format_hms(duration)} de áudio (passo pesado; "
+                        "use --no-diarize ou medium se faltar VRAM)…")
                 try:
                     doc = diarize_fn(doc, wav, hf_token=hf_token,
                                      min_speakers=cfg.min_speakers, max_speakers=cfg.max_speakers)
