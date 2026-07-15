@@ -148,6 +148,36 @@ atado/
 
 ---
 
+## 6.5. Extensão futura — ingestão de reuniões de plataformas (X/Y) [F11+, não implementar agora]
+
+Direção levantada pelo usuário: usar o `atado` para reuniões hospedadas em plataformas
+(Zoom, Google Meet, Teams…), inclusive **privadas** — o que exige "escutar" a reunião.
+
+**Princípio de arquitetura que já suporta isso sem retrabalho:** o pipeline atual lê de
+`audios/`. Ingestão de plataforma é apenas uma **camada de origem** (`sources/`) que
+produz um arquivo de áudio e o coloca em `audios/`; o resto do pipeline não muda.
+
+Caminhos possíveis (com trade-offs):
+
+| Caminho | Como | OAuth/escopo | Consentimento/legal |
+|---|---|---|---|
+| **Cloud recording API (recomendado)** | Baixar a gravação já feita pelo host via API oficial | Zoom `recording:read`; Google Drive/Meet; MS Graph `OnlineMeetingRecording.Read` | Host gravou → consentido; só read-only |
+| **Bot participante** | Um bot entra na call e captura áudio | Credenciais de bot da plataforma | ⚠️ Leis de consentimento de todas as partes (varia por jurisdição); ToS |
+| **Captura de áudio local** | Gravar o áudio do sistema na própria máquina | — | ⚠️ Usuário deve ter direito de gravar; all-party consent |
+
+**Recomendação de design:** priorizar o caminho **cloud-recording via OAuth** (legítimo,
+read-only, host consentiu). Reservar bot/captura-local como opção explícita com **atestado
+de consentimento** obrigatório (mesmo portão de consentimento da SPEC B, §7). Tokens OAuth
+**sempre via env/secure store**, nunca no `atado.yaml` (consistente com E8).
+
+**Seam concreto (a criar no F11):** `atado ingest <zoom|meet|teams> --meeting <id>` →
+`sources/<provider>.py` (OAuth + download) → normaliza para `audios/` → fluxo atual.
+Nada disso é construído nesta leva; fica registrado como ponto de extensão limpo.
+
+## 6.6. MVP de referência do usuário
+`im_angry.py` (raiz, gitignored) é o MVP mínimo do usuário (faster-whisper direto). O
+`atado` é a versão robusta/empacotada; a equivalência de resultado é validada no baseline.
+
 ## 6. Decisões da SPEC A §13 preservadas (não mudam)
 - WhisperX como engine (não trocar por whisper puro/API). ✔
 - Diarização **opcional** (nunca obrigatória) — no baseline é ligada por escolha do usuário. ✔
