@@ -194,12 +194,13 @@ def generate_kit(ws: Workspace, cfg: AtadoConfig, docs: list[TranscriptDoc],
 
 
 # ------------------------------------------------------------------ CLI: kit
-def cmd_kit(ws, *, compact, terms_only, redact, yes, console, err):
+def cmd_kit(ws, *, compact, terms_only, redact, yes, console, err, output_dir=None):
     load_dotenv(ws.root)
     try:
         cfg = load_config(ws.config_path)
     except ValueError as e:
         err.print(f"[red]{e}[/red]"); raise SystemExit(1)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     docs = ws.load_transcripts()
     if not docs:
         err.print("[yellow]Nenhum transcript — rode `atado transcribe` antes.[/yellow]")

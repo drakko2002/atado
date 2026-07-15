@@ -155,10 +155,11 @@ def check():
 
 # ============================================================ merge
 @app.command()
-def merge():
+def merge(output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/.")):
     """Consolida os transcripts em consolidated.{md,json}."""
     ws = find_workspace()
     cfg = _load_cfg(ws)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     docs = ws.load_transcripts()
     if not docs:
         err.print(f"[yellow]Nenhum transcript em {ws.transcripts} — rode `atado transcribe` antes.[/yellow]")
@@ -175,10 +176,11 @@ def merge():
 
 # ============================================================ terms
 @app.command()
-def terms():
+def terms(output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/.")):
     """Gera o índice de termos em terms.{md,csv}."""
     ws = find_workspace()
     cfg = _load_cfg(ws)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     docs = ws.load_transcripts()
     if not docs:
         err.print(f"[yellow]Nenhum transcript em {ws.transcripts}.[/yellow]")
@@ -200,10 +202,11 @@ def terms():
 
 # ============================================================ suspects
 @app.command()
-def suspects():
+def suspects(output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/.")):
     """Lista tokens suspeitos (prováveis siglas mal transcritas fora do glossário)."""
     ws = find_workspace()
     cfg = _load_cfg(ws)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     docs = ws.load_transcripts()
     if not docs:
         err.print(f"[yellow]Nenhum transcript em {ws.transcripts}.[/yellow]")
@@ -246,11 +249,13 @@ def transcribe(
     device: Optional[str] = typer.Option(None, "--device"),
     model: Optional[str] = typer.Option(None, "--model"),
     compute_type: Optional[str] = typer.Option(None, "--compute-type"),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/."),
 ):
     """Normaliza + transcreve (+ diariza) os áudios novos. (F2/F3)"""
     from .pipeline import cmd_transcribe
     cmd_transcribe(find_workspace(), only=only, force=force, no_diarize=no_diarize,
-                   device=device, model=model, compute_type=compute_type, console=console, err=err)
+                   device=device, model=model, compute_type=compute_type,
+                   output_dir=output_dir, console=console, err=err)
 
 
 @app.command()
@@ -260,11 +265,13 @@ def run(
     device: Optional[str] = typer.Option(None, "--device"),
     model: Optional[str] = typer.Option(None, "--model"),
     compute_type: Optional[str] = typer.Option(None, "--compute-type"),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/."),
 ):
     """Pipeline completo: transcribe → merge → terms → report. (F4)"""
     from .pipeline import cmd_run
     cmd_run(find_workspace(), no_diarize=no_diarize, force=force, device=device,
-            model=model, compute_type=compute_type, console=console, err=err)
+            model=model, compute_type=compute_type, output_dir=output_dir,
+            console=console, err=err)
 
 
 @app.command()
@@ -273,11 +280,12 @@ def kit(
     terms_only: bool = typer.Option(False, "--terms-only"),
     redact: bool = typer.Option(False, "--redact"),
     yes: bool = typer.Option(False, "--yes", help="Pular a confirmação de consentimento."),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir", help="Onde salvar out/."),
 ):
     """Gera o kit portátil para um agente de IA (SPEC B). (F6/F8)"""
     from .kit import cmd_kit
     cmd_kit(find_workspace(), compact=compact, terms_only=terms_only, redact=redact,
-            yes=yes, console=console, err=err)
+            yes=yes, output_dir=output_dir, console=console, err=err)
 
 
 @interview_app.command("import")

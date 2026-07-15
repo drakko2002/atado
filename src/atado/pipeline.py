@@ -192,12 +192,14 @@ def transcribe_workspace(
 
 
 # ------------------------------------------------------------------ CLI glue
-def cmd_transcribe(ws, *, only, force, no_diarize, device, model, compute_type, console, err):
+def cmd_transcribe(ws, *, only, force, no_diarize, device, model, compute_type,
+                   console, err, output_dir=None):
     load_dotenv(ws.root)
     try:
         cfg = load_config(ws.config_path)
     except ValueError as e:
         err.print(f"[red]{e}[/red]"); raise SystemExit(1)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     if cfg.diarize and not no_diarize:
         from .notices import LGPD_DIARIZATION
         console.print(f"[yellow]{LGPD_DIARIZATION}[/yellow]\n")
@@ -228,7 +230,7 @@ def _print_transcribe_summary(report, console):
         console.print(f"  [red]erro[/red] {name}: {msg}")
 
 
-def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err):
+def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err, output_dir=None):
     from .report import write_report
     from .merge import consolidate_markdown, consolidate_json
     from .terms import (find_occurrences, render_terms_markdown, render_terms_csv,
@@ -237,8 +239,10 @@ def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err)
     import json as _json
 
     report = cmd_transcribe(ws, only=None, force=force, no_diarize=no_diarize, device=device,
-                            model=model, compute_type=compute_type, console=console, err=err)
+                            model=model, compute_type=compute_type, output_dir=output_dir,
+                            console=console, err=err)
     cfg = load_config(ws.config_path)
+    ws.set_output_dir(output_dir or cfg.output_dir)
     docs = ws.load_transcripts()
     if not docs:
         err.print("[yellow]Nenhum transcript gerado — nada a consolidar.[/yellow]")

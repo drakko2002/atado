@@ -162,6 +162,14 @@ manual_order: []
 device: null                # cuda | cpu | null (autodetecta)
 compute_type: null          # int8_float16 | int8 | float16 | float32 | null
 
+# Onde salvar as saídas (null = out/ do projeto). Flag --output-dir sobrepõe.
+output_dir: null
+# Chunking para arquivos longos (1-2h): só ativa quando duração > chunk_length.
+long_audio:
+  chunk_length: 600         # segundos por bloco (10 min)
+  chunk_overlap: 3          # sobreposição entre blocos
+  silence_snap: 30          # janela p/ cortar em silêncio perto da fronteira
+
 # Offset de cada recorte na gravação-mãe (E1). Permite reconstruir o tempo
 # GLOBAL do encontro e cruzar com sua tabela de siglas em escala de horas.
 # Ex.: um recorte tirado aos 8min do vídeo -> source_start: "08:00".

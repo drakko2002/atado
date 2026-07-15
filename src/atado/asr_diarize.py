@@ -12,8 +12,8 @@ from typing import Optional
 
 from .models import TranscriptDoc
 
-# pipelines pyannote a tentar, em ordem
-_PIPELINES = ["pyannote/speaker-diarization-3.1", "pyannote/speaker-diarization-community-1"]
+# pipelines pyannote a tentar, em ordem (community-1 é a nativa do pyannote 4.x)
+_PIPELINES = ["pyannote/speaker-diarization-community-1", "pyannote/speaker-diarization-3.1"]
 
 
 def assign_speakers_by_overlap(segments: list, turns: list[tuple[float, float, str]]) -> None:
@@ -64,14 +64,16 @@ def _load_pipeline(hf_token: str, device: str):
             return pipe
 
     msg = str(last_err) if last_err else ""
-    if any(k in msg.lower() for k in ("401", "gated", "restricted", "unauthorized")):
+    if any(k in msg.lower() for k in ("401", "403", "gated", "restricted", "unauthorized", "forbidden")):
         raise DiarizationError(
-            "Acesso negado (401) aos modelos de diarização do pyannote. Verifique:\n"
-            "  1) aceite as licenças de pyannote/speaker-diarization-3.1 E "
-            "pyannote/segmentation-3.0 (e/ou speaker-diarization-community-1) na sua conta HF;\n"
-            "  2) o HF_TOKEN precisa de leitura de repositórios 'gated' — em tokens fine-grained,\n"
-            "     marque 'Read access to contents of all public gated repos you can access'.\n"
-            f"Detalhe: {msg[:200]}"
+            "Acesso negado aos modelos de diarização do pyannote. Aceite as licenças (o "
+            "pyannote 4.x usa a pipeline community-1 internamente):\n"
+            "  • https://huggingface.co/pyannote/speaker-diarization-community-1   ← geralmente o que falta\n"
+            "  • https://huggingface.co/pyannote/speaker-diarization-3.1\n"
+            "  • https://huggingface.co/pyannote/segmentation-3.0\n"
+            "E use um HF_TOKEN com leitura de repos 'gated' (tokens fine-grained: marque "
+            "'Read access to contents of all public gated repos you can access').\n"
+            f"Detalhe: {msg[:220]}"
         )
     raise DiarizationError(
         "Não foi possível carregar a diarização do pyannote. "

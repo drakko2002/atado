@@ -10,8 +10,14 @@ from .models import TranscriptDoc
 
 
 class Workspace:
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, output_dir: Optional[str] = None):
         self.root = Path(root)
+        self._output_dir = output_dir
+
+    def set_output_dir(self, output_dir: Optional[str]) -> "Workspace":
+        """Define onde salvar as saídas (D1.0). None → out/ do projeto."""
+        self._output_dir = output_dir
+        return self
 
     @property
     def config_path(self) -> Path:
@@ -23,10 +29,14 @@ class Workspace:
 
     @property
     def work(self) -> Path:
+        # intermediários e segredos (redaction_map) NUNCA vão para output_dir
         return self.root / "work"
 
     @property
     def out(self) -> Path:
+        if self._output_dir:
+            p = Path(self._output_dir).expanduser()
+            return p if p.is_absolute() else (self.root / p)
         return self.root / "out"
 
     @property
