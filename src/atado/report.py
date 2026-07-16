@@ -28,6 +28,11 @@ def build_report_markdown(
         lines.append(f"- ⚠️ {report['diarize_note']}")
     lines.append("")
 
+    oc = report.get("overall_confidence")
+    if oc is not None:
+        lines.append(f"- Confiança média da transcrição: **{oc*100:.0f}%** (ver `confidence.md` "
+                     "para os trechos a revisar)")
+    lines.append("")
     ok = [f for f in report.get("files", []) if f.get("status") == "ok"]
     lines.append("## Arquivos")
     lines.append(f"- Transcritos: {len(ok)}  ·  em cache: {len(report.get('skipped', []))}  "

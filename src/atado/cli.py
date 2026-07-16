@@ -245,6 +245,35 @@ def suspects(output_dir: Optional[str] = typer.Option(None, "--output-dir", help
     console.print(f"[green]✓[/green] out/suspects.md")
 
 
+# ============================================================ confidence
+@app.command()
+def confidence(
+    threshold: float = typer.Option(0.55, "--threshold", help="Confiança mínima (0-1)."),
+    output_dir: Optional[str] = typer.Option(None, "--output-dir"),
+):
+    """Sinaliza os trechos de baixa confiança para revisão dirigida (valida sem assistir)."""
+    ws = find_workspace()
+    cfg = _load_cfg(ws)
+    ws.set_output_dir(output_dir or cfg.output_dir)
+    docs = ws.load_transcripts()
+    if not docs:
+        err.print(f"[yellow]Nenhum transcript em {ws.transcripts}.[/yellow]")
+        raise typer.Exit(1)
+    from .confidence import render_confidence_markdown, overall_confidence, low_confidence_segments
+    ws.out.mkdir(parents=True, exist_ok=True)
+    (ws.out / "confidence.md").write_text(
+        render_confidence_markdown(docs, cfg, threshold=threshold), encoding="utf-8")
+    oc = overall_confidence(docs)
+    flagged = low_confidence_segments(docs, threshold=threshold, cfg=cfg)
+    if oc is not None:
+        console.print(f"confiança média: [bold]{oc*100:.0f}%[/bold]  ·  "
+                      f"{len(flagged)} trechos < {threshold*100:.0f}% para revisar")
+    for f in flagged[:10]:
+        console.print(f'  [magenta]{f["confidence"]*100:.0f}%[/magenta] @ '
+                      f'{f["global_start"] or f["local_start"]:.0f}s: {f["text"][:70]}')
+    console.print("[green]✓[/green] out/confidence.md")
+
+
 # ============================================================ heavy stubs (fases seguintes)
 def _todo(cmd: str, phase: str):
     err.print(f"[yellow]`atado {cmd}` é implementado na fase {phase}.[/yellow]")

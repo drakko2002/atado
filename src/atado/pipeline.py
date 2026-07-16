@@ -357,5 +357,9 @@ def cmd_run(ws, *, no_diarize, force, device, model, compute_type, console, err,
     sus = find_suspects(docs, known, load_wordlist(default_wordlist_path()), min_count=2)
     (ws.out / "suspects.md").write_text(render_suspects_markdown(sus, cfg.project), encoding="utf-8")
 
+    from .confidence import render_confidence_markdown, overall_confidence
+    (ws.out / "confidence.md").write_text(render_confidence_markdown(docs, cfg), encoding="utf-8")
+    report["overall_confidence"] = overall_confidence(docs)
+
     write_report(ws, cfg, report, index, sus)
     console.print(f"[green]✓[/green] run completo → out/ (consolidated, terms, suspects, report)")
