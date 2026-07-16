@@ -54,6 +54,11 @@ Para **diarização**, defina `HF_TOKEN` (Hugging Face) no `.env` e aceite as li
 [`pyannote/speaker-diarization-3.1`](https://huggingface.co/pyannote/speaker-diarization-3.1)
 e [`pyannote/segmentation-3.0`](https://huggingface.co/pyannote/segmentation-3.0).
 
+**Requisitos de hardware** (medidos numa reunião real de 2h29): ver [HARDWARE.md](HARDWARE.md).
+Resumo: numa RTX 4060 8 GB → 8,6 min para 2h29 (~17× tempo real); numa RTX 5090 32 GB (alvo
+FAI-UFSCar) → estimados 2–4 min com maior precisão (`float16` + batch 16). O `atado`
+auto-configura `compute_type`/`batch_size` pela VRAM.
+
 ### Matriz testada (2026-07-15, RTX 4060 8 GB)
 
 | Componente | Versão | Nota |
@@ -89,6 +94,7 @@ atado interview import resposta.md    # fecha o loop: atualiza glossário + cont
 | `atado merge` | Consolida em `consolidated.{md,json}` |
 | `atado terms` | Índice de termos em `terms.{md,csv}` |
 | `atado suspects` | Lista siglas provavelmente mal transcritas |
+| `atado confidence` | Sinaliza trechos de baixa confiança (revisão dirigida, sem assistir) |
 | `atado run` | Pipeline completo + `report.md` |
 | `atado kit [--compact] [--terms-only] [--redact] [--yes]` | Kit portátil para o agente |
 | `atado interview import <arquivo.md>` | Importa a saída do agente (glossário + context.yaml) |
