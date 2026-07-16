@@ -69,12 +69,19 @@ def _load_model(model_name: str, device: str, compute_type: str, language: str,
     key = (model_name, device, compute_type, language)
     if key not in _MODEL_CACHE:
         import whisperx  # lazy
-        asr_options = {}
+        # Opções anti-alucinação: em áudio longo o large-v3 entra em loops de repetição.
+        # condition_on_previous_text=False corta a cascata; no_repeat_ngram evita n-gramas
+        # repetidos; repetition_penalty desincentiva loops.
+        asr_options = {
+            "condition_on_previous_text": False,
+            "no_repeat_ngram_size": 3,
+            "repetition_penalty": 1.15,
+        }
         if initial_prompt:
             asr_options["initial_prompt"] = initial_prompt
         _MODEL_CACHE[key] = whisperx.load_model(
             model_name, device, compute_type=compute_type, language=language,
-            asr_options=asr_options or None,
+            asr_options=asr_options,
         )
     return _MODEL_CACHE[key]
 
@@ -107,6 +114,8 @@ def whisperx_transcribe(
 
     audio = whisperx.load_audio(str(wav_path))
     mdl = _load_model(model, device, compute_type, language, initial_prompt)
+    # NÃO faz retry no mesmo processo: um OOM de CUDA envenena o contexto (erros sticky),
+    # então a única cura é usar um batch_size que caiba de início (derivado da VRAM).
     result = mdl.transcribe(audio, batch_size=batch_size)
     segments = result.get("segments", [])
 

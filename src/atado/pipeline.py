@@ -76,6 +76,7 @@ def transcribe_long_file(
     chunk_dir: Path,
     signature: str,
     atado_version: str = "0.1.0",
+    batch_size: int = 8,
     log: Callable[[str], None] = lambda s: None,
 ) -> TranscriptDoc:
     """Transcreve um arquivo longo por blocos, com resume por marcador de chunk (D1.2)."""
@@ -102,6 +103,7 @@ def transcribe_long_file(
             cw, source_file=f"{source_file}#chunk{ch.index}", model=model, device=device,
             compute_type=compute_type, language=language, initial_prompt=initial_prompt,
             duration=ch.length, source_start=None, atado_version=atado_version,
+            batch_size=batch_size,
         )
         cj.write_text(cdoc.model_dump_json(), encoding="utf-8")
         marker.write_text(signature, encoding="utf-8")  # marca só após o json OK (resumível)
@@ -111,6 +113,11 @@ def transcribe_long_file(
             pass
         docs.append(cdoc)
         done_count += 1
+        try:  # libera VRAM entre blocos (reduz fragmentação em arquivos longos)
+            import torch
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
         elapsed = time.time() - t0
         per = elapsed / done_count
         eta = per * (len(chunks) - (i + 1))
@@ -148,7 +155,8 @@ def transcribe_workspace(
     # precedência: flag > config > autodetecção
     device = device or cfg.device
     compute_type = compute_type or cfg.compute_type
-    hw = detect_hardware(model=model_name, device=device, compute_type=compute_type)
+    hw = detect_hardware(model=model_name, device=device, compute_type=compute_type,
+                         batch_size=cfg.batch_size)
     if transcribe_fn is None:
         from .asr import whisperx_transcribe
         transcribe_fn = whisperx_transcribe
@@ -218,6 +226,7 @@ def transcribe_workspace(
                     initial_prompt=initial_prompt, source_start=source_start,
                     transcribe_fn=transcribe_fn, chunk_dir=ws.work / "chunks" / audio.stem,
                     signature=signature, atado_version=__version__, log=log,
+                    batch_size=hw["batch_size"],
                 )
             else:
                 doc = transcribe_fn(
@@ -225,6 +234,7 @@ def transcribe_workspace(
                     compute_type=hw["compute_type"], language=cfg.language,
                     initial_prompt=initial_prompt, duration=duration,
                     source_start=source_start, atado_version=__version__,
+                    batch_size=hw["batch_size"],
                 )
             if diarize_enabled and diarize_fn is not None:
                 if duration > 1800:  # >30 min: diarização é o passo mais pesado (VRAM/tempo)

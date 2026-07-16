@@ -101,13 +101,23 @@ def merge_chunks(chunks: list[Chunk], docs: list[TranscriptDoc]) -> list[Segment
 
     merged.sort(key=lambda s: (s.start, s.end))
 
-    # passada final: remove duplicata quase-idêntica (mesmo texto normalizado + tempo próximo)
+    # passada final: remove duplicata de FRONTEIRA — segmentos de chunks vizinhos que
+    # cobrem o MESMO trecho (sobreposição temporal significativa) com texto parecido.
+    # Fala legítima repetida tem tempos DISJUNTOS, então não é afetada.
+    from rapidfuzz import fuzz
     deduped: list[Segment] = []
     for s in merged:
-        if deduped:
-            prev = deduped[-1]
-            if (normalize(prev.text) == normalize(s.text)
-                    and abs(prev.start - s.start) < 2.0):
+        drop = False
+        for prev in reversed(deduped[-4:]):
+            if prev.end <= s.start:  # sem sobreposição temporal → não é dup de fronteira
                 continue
-        deduped.append(s)
+            overlap = min(prev.end, s.end) - max(prev.start, s.start)
+            shorter = min(prev.end - prev.start, s.end - s.start) or 1e-9
+            na, nb = normalize(prev.text), normalize(s.text)
+            if overlap / shorter > 0.5 and na and nb and (
+                    fuzz.ratio(na, nb) >= 80 or nb in na or na in nb):
+                drop = True
+                break
+        if not drop:
+            deduped.append(s)
     return deduped

@@ -81,6 +81,7 @@ class AtadoConfig(BaseModel):
     # Overrides de hardware (E10) — opcionais; flags de CLI ainda sobrepõem.
     device: Optional[str] = None
     compute_type: Optional[str] = None
+    batch_size: Optional[int] = None   # null = derivado da VRAM (large+≤8GB → 4)
 
     files: dict[str, FileEntry] = Field(default_factory=dict)
     glossary: Glossary = Field(default_factory=Glossary)

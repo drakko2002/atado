@@ -54,3 +54,25 @@ class TestMergeChunks:
         merged = merge_chunks([c0], [d0])
         assert merged[0].start == 102.0
         assert merged[0].words[0].start == 102.0
+
+
+def test_dedups_temporally_overlapping_boundary_duplicates():
+    # chunk0 [0,600] e chunk1 [597,1197] ambos transcrevem o trecho 597-600 (fronteira)
+    c0 = Chunk(0, 0.0, 600.0)
+    c1 = Chunk(1, 597.0, 1197.0)
+    d0 = _doc([Segment(start=594.0, end=600.0, text="e nesse momento em 2024")])
+    d1 = _doc([Segment(start=0.0, end=3.0, text="e nesse momento em 2024"),   # =file 597-600 (dup)
+               Segment(start=3.0, end=8.0, text="nos comecamos a conversar")])
+    merged = merge_chunks([c0, c1], [d0, d1])
+    texts = [s.text for s in merged]
+    assert texts.count("e nesse momento em 2024") == 1     # dup de fronteira removida
+    assert "nos comecamos a conversar" in texts
+
+
+def test_disjoint_repeats_are_kept():
+    # fala legitimamente repetida em tempos DISJUNTOS não pode ser removida
+    c0 = Chunk(0, 0.0, 600.0)
+    d0 = _doc([Segment(start=10.0, end=12.0, text="obrigado"),
+               Segment(start=300.0, end=302.0, text="obrigado")])
+    merged = merge_chunks([c0], [d0])
+    assert [s.text for s in merged].count("obrigado") == 2
