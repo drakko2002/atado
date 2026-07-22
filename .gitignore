@@ -56,3 +56,6 @@ baseline/
 
 # Scripts scratch do usuário (experimentos, fora do atado)
 scratch_*.py
+
+# Amostras antigas (conteúdo institucional/PII — NUNCA versionar)
+samples_old/

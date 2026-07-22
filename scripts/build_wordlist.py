@@ -121,6 +121,36 @@ final começo semana mês reunião encontro decisão encaminhamento pendência p
 questão dúvida pergunta resposta exemplo caso vez lugar mundo história trajetória
 """
 
+# --- vocabulário administrativo/institucional (fundações de apoio, universidades) ---
+ADMIN = """
+fundação apoio aquisição bem bens controle comunicação legal manual viagem diária
+acompanhamento pessoal encerramento operacional alteração auditoria definição normativo
+convênio contrato suporte termo reconhecimento organizacional aspecto logomarca expediente
+estrutura introdução glossário anexo contratação solicitação execução prestação conta
+compra atividade norma pagamento estágio despesa engenharia procedimento aplicação obra
+fiscal licitação empenho rubrica remanejamento descentralização outorga fomento bolsa
+bolsista patrocínio coordenador coordenadora gestor gestora financiador financiadora
+apoiada apoiadas instrumento vigência aditivo prorrogação orçamento orçamentária repasse
+recurso desembolso comprovante reembolso ressarcimento almoxarifado patrimônio importação
+cotação fornecedor fornecedores nota fiscal recibo autônomo estagiário celetista salário
+encargo rescisão admissão superintendência gerência assessoria diretoria deliberativo
+regimento estatuto portaria decreto resolução instrução normativa jurídica jurídico
+tributário retenção alíquota isenção imposto contribuição federal municipal estadual
+centro provisão folha benefício vale transporte plano saúde edital cadastro prestador
+prestadores exigência elemento observação ator segurança trabalho funcionário admissão
+"""
+
+# particípios/formas de verbos -ar frequentes que faltavam (evita falso positivo do
+# passe de correção, ex.: "programado" ≠ ProGrad)
+PARTICIPLES = """
+programado programada programados programadas programar programa programam programamos
+cadastrado cadastrada cadastrados cadastradas verificado verificada verificamos verifica
+inserido inserida inserir insere finalizado finalizada finalizei finalizar realizado
+realizada realizamos realizar realizo constará constar consta constam exposto exposta
+expostos expostas contratado contratada contratados contratadas previsto prevista
+previstos previstas provisionado provisionada liberado liberada liberados liberadas
+"""
+
 ADJECTIVES = """
 bom novo velho grande pequeno alto baixo público privado institucional federal estadual
 municipal técnico científico acadêmico importante possível necessário disponível próprio
@@ -142,6 +172,8 @@ segunda terça quarta quinta sexta sábado domingo hoje ontem amanhã manhã tar
 """
 MISC = """
 ok tá então né aí uai poxa olá oi tchau obrigado obrigada por favor desculpa
+cadê ó ué opa eita hein tô tava pra pro pras pros aham uhum enfim tipo daí
+beleza perfeito legal bacana show valeu
 """
 
 
@@ -197,6 +229,8 @@ def main() -> None:
     add(CALENDAR)
     add(MISC)
     add(NOUNS, plural)
+    add(ADMIN, plural)
+    add(PARTICIPLES)
     for adj in ADJECTIVES.split():
         for f1 in fem(adj.lower()):
             for f2 in plural(f1):
