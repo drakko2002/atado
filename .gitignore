@@ -59,3 +59,7 @@ scratch_*.py
 
 # Amostras antigas (conteúdo institucional/PII — NUNCA versionar)
 samples_old/
+
+# Pacotes de envio (contêm token/conteúdo privado)
+*.zip
+*.7z
