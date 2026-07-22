@@ -173,6 +173,9 @@ Nomes de participantes ficam como `SPEAKER_xx`; a redação por regex é **best-
 **Princípio:** a transcrição é sua. O `atado` é local-first e o autor do projeto **não tem —
 e não pretende ter — acesso a nenhuma transcrição feita por usuários.**
 
+Para transferir um projeto a outra máquina/pessoa com segurança (o que enviar, o que nunca
+enviar, como cifrar, setup no destino): ver [GOVERNANCA-ENVIO.md](GOVERNANCA-ENVIO.md).
+
 ### Diarização e LGPD
 
 A diarização (identificação de "quem fala") processa características da **voz**, que é **dado
